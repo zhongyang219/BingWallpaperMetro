@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest" xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest">
-  <Identity Name="9c8cba47-09f3-4568-9c3a-de5cf3658e68" Publisher="CN=Yang" Version="1.0.0.3" />
+  <Identity Name="9c8cba47-09f3-4568-9c3a-de5cf3658e68" Publisher="CN=Yang" Version="1.0.0.4" />
   <Properties>
     <DisplayName>BingWallpaper</DisplayName>
     <PublisherDisplayName>zhongyang219</PublisherDisplayName>

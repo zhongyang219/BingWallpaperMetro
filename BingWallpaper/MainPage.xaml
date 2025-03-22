@@ -32,4 +32,16 @@
                TextWrapping="Wrap"
                Visibility="Visible"/>
     </Grid>
+    <Page.BottomAppBar>
+        <AppBar BorderThickness="0" BorderBrush="{x:Null}" Background="#106FC0">
+            <StackPanel Margin="20, 10" Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Click="RefreshButton_Click" BorderThickness="0">
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                        <SymbolIcon Symbol="Refresh" />
+                        <TextBlock Text="刷新" Margin="0,5,0,0" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </AppBar>
+    </Page.BottomAppBar>
 </Page>

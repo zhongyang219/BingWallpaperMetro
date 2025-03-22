@@ -237,6 +237,11 @@ namespace BingWallpaper
                 System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
             }
         }
+
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetBingWallpaper();
+        }
     }
 
     public struct WallpaperInfo
