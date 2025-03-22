@@ -54,7 +54,7 @@ namespace BingWallpaper.utilities
             }
         }
 
-        static public async Task<StorageFile> ResizeImageAsync(StorageFile file, uint width, uint height)
+        static public async Task<StorageFile> ResizeImageAsync(StorageFile file, uint targetWidth, uint targetHeight)
         {
             try
             {
@@ -64,24 +64,85 @@ namespace BingWallpaper.utilities
                     // 创建 BitmapDecoder
                     BitmapDecoder decoder = await BitmapDecoder.CreateAsync(fileStream);
 
+                    // 获取原始图片的宽度和高度
+                    uint originalWidth = decoder.PixelWidth;
+                    uint originalHeight = decoder.PixelHeight;
+
+                    // 计算目标尺寸的比例
+                    double widthRatio = (double)targetWidth / originalWidth;
+                    double heightRatio = (double)targetHeight / originalHeight;
+
+                    // 选择较大的比例，确保图片不会被拉伸
+                    double scaleRatio = Math.Max(widthRatio, heightRatio);
+
+                    // 计算调整后的尺寸
+                    uint scaledWidth = (uint)(originalWidth * scaleRatio);
+                    uint scaledHeight = (uint)(originalHeight * scaleRatio);
+
                     // 创建 InMemoryRandomAccessStream
                     InMemoryRandomAccessStream resizedStream = new InMemoryRandomAccessStream();
 
                     // 创建 BitmapEncoder
                     BitmapEncoder encoder = await BitmapEncoder.CreateForTranscodingAsync(resizedStream, decoder);
 
-                    // 调整图片分辨率
-                    encoder.BitmapTransform.ScaledWidth = width;
-                    encoder.BitmapTransform.ScaledHeight = height;
+                    // 调整图片尺寸
+                    encoder.BitmapTransform.ScaledWidth = scaledWidth;
+                    encoder.BitmapTransform.ScaledHeight = scaledHeight;
 
                     // 提交更改
                     await encoder.FlushAsync();
 
-                    // 保存调整后的图片
+                    // 创建裁切后的图片
+                    InMemoryRandomAccessStream croppedStream = new InMemoryRandomAccessStream();
+                    BitmapEncoder croppedEncoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, croppedStream);
+
+                    // 从调整后的图片中裁切出目标尺寸的部分
+                    BitmapTransform transform = new BitmapTransform
+                    {
+                        ScaledWidth = scaledWidth,
+                        ScaledHeight = scaledHeight,
+                        Bounds = new BitmapBounds
+                        {
+                            X = (scaledWidth - targetWidth) / 2,
+                            Y = (scaledHeight - targetHeight) / 2,
+                            Width = targetWidth,
+                            Height = targetHeight
+                        }
+                    };
+
+                    // 设置裁切参数
+                    croppedEncoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
+                    croppedEncoder.BitmapTransform.ScaledWidth = targetWidth;
+                    croppedEncoder.BitmapTransform.ScaledHeight = targetHeight;
+
+                    // 从调整后的图片中读取像素数据
+                    PixelDataProvider pixelData = await decoder.GetPixelDataAsync(
+                        BitmapPixelFormat.Bgra8,
+                        BitmapAlphaMode.Straight,
+                        transform,
+                        ExifOrientationMode.IgnoreExifOrientation,
+                        ColorManagementMode.DoNotColorManage
+                    );
+
+                    // 将像素数据写入裁切后的图片
+                    croppedEncoder.SetPixelData(
+                        BitmapPixelFormat.Bgra8,
+                        BitmapAlphaMode.Straight,
+                        targetWidth,
+                        targetHeight,
+                        96,
+                        96,
+                        pixelData.DetachPixelData()
+                    );
+
+                    // 提交裁切后的图片
+                    await croppedEncoder.FlushAsync();
+
+                    // 保存裁切后的图片
                     StorageFile resizedFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("ResizedImage.jpg", CreationCollisionOption.ReplaceExisting);
                     using (IRandomAccessStream resizedFileStream = await resizedFile.OpenAsync(FileAccessMode.ReadWrite))
                     {
-                        await RandomAccessStream.CopyAsync(resizedStream, resizedFileStream);
+                        await RandomAccessStream.CopyAsync(croppedStream, resizedFileStream);
                     }
 
                     return resizedFile;
@@ -93,7 +154,6 @@ namespace BingWallpaper.utilities
                 return null;
             }
         }
-
         static public string GenerateFileName(string copyright)
         {
             // 获取当前日期
