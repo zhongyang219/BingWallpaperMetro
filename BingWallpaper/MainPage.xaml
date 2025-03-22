@@ -11,26 +11,32 @@
         <!-- 图片 -->
         <Image x:Name="curWallpaper" Stretch="Uniform" Tapped="Image_Tapped"/>
 
-        <!-- 顶部标题 -->
-        <TextBlock x:Name="titleTextBlock"
-               HorizontalAlignment="Center"
+        <!-- 搜索框 -->
+        <StackPanel x:Name="bingSearchBox" Orientation="Horizontal"  Margin="100, 150" VerticalAlignment="Top" HorizontalAlignment="Left" >
+            <Image Source="ms-appx:///Assets/Logo.png" Width="38" VerticalAlignment="Center"/>
+            <TextBox x:Name="searchTextBox" Width="420" FontSize="20" PlaceholderText="输入搜索词" FontFamily="Microsoft YaHei" KeyDown="SearchTextBox_KeyDown" Opacity="0.8"/>
+        </StackPanel>
+
+        <StackPanel x:Name="textPanel" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Bottom">
+            <!-- 标题 -->
+            <TextBlock x:Name="titleTextBlock"
+               HorizontalAlignment="Right"
                VerticalAlignment="Top"
-               Margin="20"
-               FontSize="24"
-               FontWeight="Bold"
+               Margin="5"
+               FontSize="20"
                Foreground="White"
                TextWrapping="Wrap"
-               Visibility="Visible"/>
-
-        <!-- 底部版权信息 -->
-        <TextBlock x:Name="copyrightTextBlock"
-               HorizontalAlignment="Center"
+               Visibility="Visible" FontFamily="Microsoft YaHei"/>
+            <!-- 版权信息 -->
+            <TextBlock x:Name="copyrightTextBlock"
+               HorizontalAlignment="Right"
                VerticalAlignment="Bottom"
-               Margin="20"
+               Margin="5"
                FontSize="16"
                Foreground="White"
                TextWrapping="Wrap"
                Visibility="Visible"/>
+        </StackPanel>
     </Grid>
     <Page.BottomAppBar>
         <AppBar BorderThickness="0" BorderBrush="{x:Null}" Background="#106FC0">
@@ -38,13 +44,13 @@
                 <Button Click="RefreshButton_Click" BorderThickness="0">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                         <SymbolIcon Symbol="Refresh" />
-                        <TextBlock Text="刷新" Margin="0,5,0,0" />
+                        <TextBlock Text="刷新" Margin="0,5,0,0" FontWeight="Normal" FontFamily="Microsoft YaHei" />
                     </StackPanel>
                 </Button>
-                <Button Click="SaveAsButton_Click" BorderThickness="0">
+                <Button Click="SaveAsButton_Click" BorderThickness="0" FontFamily="Global User Interface">
                     <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                         <SymbolIcon Symbol="SaveLocal" />
-                        <TextBlock Text="另存为" Margin="0,5,0,0" />
+                        <TextBlock Text="另存为" Margin="0,5,0,0" FontWeight="Normal" FontFamily="Microsoft YaHei" />
                     </StackPanel>
                 </Button>
             </StackPanel>

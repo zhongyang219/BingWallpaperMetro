@@ -20,6 +20,8 @@ using Windows.UI.Notifications;
 using Windows.Data.Xml.Dom;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.UI.ApplicationSettings;
+using Windows.UI.Popups;
 
 // “空白页”项模板在 http://go.microsoft.com/fwlink/?LinkId=234238 上有介绍
 
@@ -31,10 +33,21 @@ namespace BingWallpaper
     public sealed partial class MainPage : Page
     {
         List<XmlDocument> tileNotifications = new List<XmlDocument>();
+        private SettingsData settingsData;
+        const string KEY_SHOW_SEARCH_BOX = "showSearchBox";
 
         public MainPage()
         {
             this.InitializeComponent();
+            LoadSettings();
+
+            // 添加设置
+            SettingsCommand settingsCommand = new SettingsCommand("settingsCmd", "设置", new UICommandInvokedHandler(OnSettingsCmd));
+            // 将设置命令添加到设置面板
+            SettingsPane.GetForCurrentView().CommandsRequested += (sender, args) =>
+            {
+                args.Request.ApplicationCommands.Add(settingsCommand);
+            };
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -154,19 +167,37 @@ namespace BingWallpaper
             return wallpaperInfo;
         }
 
+        public SettingsData GetSettingsData()
+        {
+            return settingsData;
+        }
+
+        public void LoadSettings()
+        {
+            ApplicationDataContainer rootContainer = ApplicationData.Current.LocalSettings;
+            settingsData.showSearchBox = (bool)utilities.Common.GetConfigValue(rootContainer.Values, KEY_SHOW_SEARCH_BOX, false);
+            ApplySettings(settingsData);
+        }
+
+        public void SaveSettings()
+        {
+            ApplicationDataContainer rootContainer = ApplicationData.Current.LocalSettings;
+            rootContainer.Values[KEY_SHOW_SEARCH_BOX] = settingsData.showSearchBox;
+        }
+
+        public void ApplySettings(SettingsData _settingsData)
+        {
+            settingsData = _settingsData;
+            bingSearchBox.Visibility = settingsData.showSearchBox ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         private void Image_Tapped(object sender, Windows.UI.Xaml.Input.TappedRoutedEventArgs e)
         {
             // 切换标题和版权信息的可见性
-            if (titleTextBlock.Visibility == Visibility.Visible)
-            {
-                titleTextBlock.Visibility = Visibility.Collapsed;
-                copyrightTextBlock.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                titleTextBlock.Visibility = Visibility.Visible;
-                copyrightTextBlock.Visibility = Visibility.Visible;
-            }
+            bool textVisible = textPanel.Visibility == Visibility.Collapsed;
+            bool searchBoxVisible = textVisible && settingsData.showSearchBox;
+            textPanel.Visibility = textVisible ? Visibility.Visible : Visibility.Collapsed;
+            bingSearchBox.Visibility = searchBoxVisible ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private XmlDocument CreateTileTemplate(TileTemplateType templateType, string imageUrl = null, string title = null, string copyright = null)
@@ -281,6 +312,50 @@ namespace BingWallpaper
                 System.Diagnostics.Debug.WriteLine("保存文件失败: " + ex.Message);
             }
         }
+
+        private void SearchTextBox_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            // 检查是否按下回车键
+            if (e.Key == Windows.System.VirtualKey.Enter)
+            {
+                // 获取搜索关键词
+                string searchKeyword = searchTextBox.Text;
+
+                if (!string.IsNullOrEmpty(searchKeyword))
+                {
+                    // 打开必应搜索
+                    utilities.Common.OpenBingSearch(searchKeyword);
+                }
+            }
+        }
+
+        private void OnSettingsCmd(IUICommand command)
+        {
+            // 创建自定义设置界面
+            Settings settingsFlyout = new Settings(this);
+
+            // 创建 Popup 用于显示设置界面
+            Popup popup = new Popup
+            {
+                Child = settingsFlyout,
+                IsLightDismissEnabled = true, // 点击外部关闭 Popup
+            };
+
+            // 设置 Settings 的宽度和高度
+            settingsFlyout.Width = 346;
+            settingsFlyout.Height = Window.Current.Bounds.Height;
+
+            // 计算 Popup 的位置
+            double screenWidth = Window.Current.Bounds.Width;
+            popup.HorizontalOffset = screenWidth - 346; // 显示在屏幕右侧
+            popup.VerticalOffset = 0; // 显示在屏幕顶部
+
+            // 将 Popup 传递给 Settings 页面
+            settingsFlyout.SetParentPopup(popup);
+
+            // 显示 Popup
+            popup.IsOpen = true;
+        }
     }
 
     public struct WallpaperInfo
@@ -288,5 +363,10 @@ namespace BingWallpaper
         public string url;
         public string title;
         public string copyright;
+    }
+
+    public struct SettingsData
+    {
+        public bool showSearchBox;
     }
 }

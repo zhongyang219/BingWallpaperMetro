@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Resources.Core;
+using Windows.Foundation.Collections;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -178,6 +179,30 @@ namespace BingWallpaper.utilities
             }
 
             return input;
+        }
+
+        static public async void OpenBingSearch(string keyword)
+        {
+            try
+            {
+                // 构造必应搜索的 URL
+                string searchUrl = "https://www.bing.com/search?q=" + Uri.EscapeDataString(keyword);
+
+                // 使用系统浏览器打开 URL
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(searchUrl));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("打开必应搜索失败: " + ex.Message);
+            }
+        }
+
+        static public Object GetConfigValue(IPropertySet values, string key, Object default_value)
+        {
+            if (values.ContainsKey(key))
+                return values[key];
+            else
+                return default_value;
         }
     }
 }
