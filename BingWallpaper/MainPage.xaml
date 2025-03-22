@@ -41,6 +41,12 @@
                         <TextBlock Text="刷新" Margin="0,5,0,0" />
                     </StackPanel>
                 </Button>
+                <Button Click="SaveAsButton_Click" BorderThickness="0">
+                    <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                        <SymbolIcon Symbol="SaveLocal" />
+                        <TextBlock Text="另存为" Margin="0,5,0,0" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </AppBar>
     </Page.BottomAppBar>

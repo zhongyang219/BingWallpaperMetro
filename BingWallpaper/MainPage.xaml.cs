@@ -19,6 +19,7 @@ using Windows.Web.Http;
 using Windows.UI.Notifications;
 using Windows.Data.Xml.Dom;
 using Windows.Storage;
+using Windows.Storage.Pickers;
 
 // “空白页”项模板在 http://go.microsoft.com/fwlink/?LinkId=234238 上有介绍
 
@@ -241,6 +242,44 @@ namespace BingWallpaper
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
             SetBingWallpaper();
+        }
+
+        private async void SaveAsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 获取下载的图片文件
+                StorageFile downloadedFile = await ApplicationData.Current.LocalFolder.GetFileAsync("DownloadedImage.jpg");
+
+                if (downloadedFile != null)
+                {
+                    // 生成默认文件名
+                    string defaultFileName = utilities.Common.GenerateFileName(copyrightTextBlock.Text);
+
+                    // 弹出“另存为”对话框
+                    FileSavePicker savePicker = new FileSavePicker();
+                    savePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+                    savePicker.FileTypeChoices.Add("JPEG 图片", new List<string> { ".jpg" });
+                    savePicker.SuggestedFileName = defaultFileName;
+
+                    StorageFile savedFile = await savePicker.PickSaveFileAsync();
+
+                    if (savedFile != null)
+                    {
+                        // 复制文件到指定位置
+                        await downloadedFile.CopyAndReplaceAsync(savedFile);
+                        System.Diagnostics.Debug.WriteLine("文件保存成功: " + savedFile.Path);
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("未找到下载的图片文件");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("保存文件失败: " + ex.Message);
+            }
         }
     }
 

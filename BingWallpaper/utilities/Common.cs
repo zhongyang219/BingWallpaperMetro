@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -91,6 +92,32 @@ namespace BingWallpaper.utilities
                 System.Diagnostics.Debug.WriteLine("图片调整失败: " + ex.Message);
                 return null;
             }
+        }
+
+        static public string GenerateFileName(string copyright)
+        {
+            // 获取当前日期
+            string currentDate = DateTime.Now.ToString("yyyyMMdd");
+
+            // 替换非法字符为下划线
+            string safeCopyright = ReplaceInvalidFileNameChars(copyright);
+
+            // 生成文件名
+            return string.Format("Bing_{0}_{1}.jpg", currentDate, safeCopyright);
+        }
+
+        static public string ReplaceInvalidFileNameChars(string input)
+        {
+            // 非法字符列表
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+
+            // 替换非法字符为下划线
+            foreach (char invalidChar in invalidChars)
+            {
+                input = input.Replace(invalidChar, '_');
+            }
+
+            return input;
         }
     }
 }
