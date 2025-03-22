@@ -18,6 +18,7 @@ using Newtonsoft.Json.Linq;
 using Windows.Web.Http;
 using Windows.UI.Notifications;
 using Windows.Data.Xml.Dom;
+using Windows.Storage;
 
 // “空白页”项模板在 http://go.microsoft.com/fwlink/?LinkId=234238 上有介绍
 
@@ -28,6 +29,8 @@ namespace BingWallpaper
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        List<XmlDocument> tileNotifications = new List<XmlDocument>();
+
         public MainPage()
         {
             this.InitializeComponent();
@@ -40,21 +43,70 @@ namespace BingWallpaper
 
         private async void SetBingWallpaper()
         {
+            // 清空之前的磁贴模板
+            tileNotifications.Clear();
+
             // 获取壁纸信息
             WallpaperInfo wallpaperInfo = await GetCurrentBingWallpaper();
 
-            // 异步加载壁纸
-            BitmapImage bitmapImage = new BitmapImage();
-            bitmapImage.UriSource = new Uri(wallpaperInfo.url);
-            curWallpaper.Source = bitmapImage;
+            // 获取磁贴更新器
+            TileUpdater tileUpdater = TileUpdateManager.CreateTileUpdaterForApplication();
+            // 启用队列通知
+            tileUpdater.EnableNotificationQueue(true);
+            // 清空之前的计划通知
+            tileUpdater.Clear();
+
+            // 下载图片
+            StorageFile downloadedFile = await utilities.Common.DownloadImageAsync(wallpaperInfo.url);
+            if (downloadedFile != null)
+            {
+                // 调整图片尺寸
+                StorageFile resizedFile = await utilities.Common.ResizeImageAsync(downloadedFile, 558, 270);
+
+                if (resizedFile != null)
+                {
+                    // 使用调整后的图片更新磁贴
+                    string localImageUrl = "ms-appdata:///local/" + resizedFile.Name;
+                    UpdateTileWithWallpaper(localImageUrl);
+                    UpdateTileWallpaperAndTitle(localImageUrl, wallpaperInfo.title);
+                }
+            }
+
+            try
+            {
+                // 异步加载壁纸
+                BitmapImage bitmapImage = new BitmapImage();
+                bitmapImage.UriSource = new Uri(wallpaperInfo.url);
+                curWallpaper.Source = bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("加载壁纸失败: " + ex.Message);
+                // 设置默认壁纸
+                curWallpaper.Source = new BitmapImage(new Uri("ms-appx:///Assets/Placeholder.jpg"));
+            }
 
             // 设置标题和版权信息
             titleTextBlock.Text = wallpaperInfo.title;
             copyrightTextBlock.Text = wallpaperInfo.copyright;
 
             // 更新磁贴
-            UpdateTileWithWallpaper(wallpaperInfo.url); // 显示壁纸的磁贴
             UpdateTileWithText(wallpaperInfo.title, wallpaperInfo.copyright); // 显示文本的磁贴
+
+            try
+            {
+                // 添加磁贴通知到队列
+                foreach (var tileXml in tileNotifications)
+                {
+                    TileNotification tileNotification = new TileNotification(tileXml);
+                    tileUpdater.Update(tileNotification);
+                }
+                System.Diagnostics.Debug.WriteLine("队列通知已添加！");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("队列通知失败: " + ex.Message);
+            }
         }
 
         private async Task<WallpaperInfo> GetCurrentBingWallpaper()
@@ -122,22 +174,19 @@ namespace BingWallpaper
                 XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150Image);
                 IXmlNode imageNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0].ChildNodes[0];
                 // 设置图片url
-                imageNode.Attributes[1].NodeValue = escapedImageUrl;
+                //imageNode.Attributes[1].NodeValue = "ms-appx:///Assets/TestTile.jpg";
+                imageNode.Attributes[1].NodeValue = imageUrl;
 
                 // 打印 XML
                 string tileXmlString = tileXml.GetXml();
                 System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
 
-                // 创建磁贴通知
-                TileNotification tileNotification = new TileNotification(tileXml);
-
-                // 更新磁贴
-                TileUpdateManager.CreateTileUpdaterForApplication().Update(tileNotification);
-                System.Diagnostics.Debug.WriteLine("磁贴更新成功！");
+                // 添加 XML
+                tileNotifications.Add(tileXml);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("磁贴更新失败: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
             }
         }
 
@@ -162,16 +211,43 @@ namespace BingWallpaper
                 string tileXmlString = tileXml.GetXml();
                 System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
 
-                // 创建磁贴通知
-                TileNotification tileNotification = new TileNotification(tileXml);
-
-                // 更新磁贴
-                TileUpdateManager.CreateTileUpdaterForApplication().Update(tileNotification);
-                System.Diagnostics.Debug.WriteLine("磁贴更新成功！");
+                // 添加 XML
+                tileNotifications.Add(tileXml);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("磁贴更新失败: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
+            }
+        }
+
+        private void UpdateTileWallpaperAndTitle(string imageUrl, string title)
+        {
+            try
+            {
+                // 转义特殊字符
+                string escapedImageUrl = utilities.Common.EscapeXml(imageUrl);
+                string escapedTitle = utilities.Common.EscapeXml(title);
+
+                // 获取磁贴模板
+                XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150ImageAndText01);
+                IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                IXmlNode imageNode = bindingNode.ChildNodes[0];
+                IXmlNode textNode = bindingNode.ChildNodes[1];
+                // 设置图片节点
+                imageNode.Attributes[1].NodeValue = escapedImageUrl;
+                // 设置文本节点
+                textNode.InnerText = escapedTitle;
+
+                // 打印 XML
+                string tileXmlString = tileXml.GetXml();
+                System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
+
+                // 添加 XML
+                tileNotifications.Add(tileXml);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
             }
         }
     }
