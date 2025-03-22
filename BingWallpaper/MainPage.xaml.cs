@@ -52,9 +52,9 @@ namespace BingWallpaper
             titleTextBlock.Text = wallpaperInfo.title;
             copyrightTextBlock.Text = wallpaperInfo.copyright;
 
-            //// 更新磁贴
-            //UpdateTileWithWallpaper(wallpaperInfo.url); // 显示壁纸的磁贴
-            //UpdateTileWithText(wallpaperInfo.title, wallpaperInfo.copyright); // 显示文本的磁贴
+            // 更新磁贴
+            UpdateTileWithWallpaper(wallpaperInfo.url); // 显示壁纸的磁贴
+            UpdateTileWithText(wallpaperInfo.title, wallpaperInfo.copyright); // 显示文本的磁贴
         }
 
         private async Task<WallpaperInfo> GetCurrentBingWallpaper()
@@ -74,6 +74,12 @@ namespace BingWallpaper
                     JToken imageInfo = json["images"][0];
 
                     wallpaperInfo.url = "https://cn.bing.com" + imageInfo["url"].ToString();
+                    // 截取url中从开头到".jpg"的部分
+                    int jpgIndex = wallpaperInfo.url.IndexOf(".jpg");
+                    if (jpgIndex != -1)
+                    {
+                        wallpaperInfo.url = wallpaperInfo.url.Substring(0, jpgIndex + 4);
+                    }
                     wallpaperInfo.title = imageInfo["title"].ToString();
                     wallpaperInfo.copyright = imageInfo["copyright"].ToString();
                 }
@@ -107,46 +113,66 @@ namespace BingWallpaper
 
         private void UpdateTileWithWallpaper(string imageUrl)
         {
-            string tileXmlString = @"
-            <tile>
-                <visual>
-                    <binding template='TileWide'>
-                        <image src='" + imageUrl + @"' placement='background'/>
-                    </binding>
-                    <binding template='TileMedium'>
-                        <image src='" + imageUrl + @"' placement='background'/>
-                    </binding>
-                </visual>
-            </tile>";
+            try
+            {
+                // 转义特殊字符
+                string escapedImageUrl = utilities.Common.EscapeXml(imageUrl);
 
-            XmlDocument tileXml = new XmlDocument();
-            tileXml.LoadXml(tileXmlString);
+                // 获取磁贴模板
+                XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150Image);
+                IXmlNode imageNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                // 设置图片url
+                imageNode.Attributes[1].NodeValue = escapedImageUrl;
 
-            TileNotification tileNotification = new TileNotification(tileXml);
-            TileUpdateManager.CreateTileUpdaterForApplication().Update(tileNotification);
+                // 打印 XML
+                string tileXmlString = tileXml.GetXml();
+                System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
+
+                // 创建磁贴通知
+                TileNotification tileNotification = new TileNotification(tileXml);
+
+                // 更新磁贴
+                TileUpdateManager.CreateTileUpdaterForApplication().Update(tileNotification);
+                System.Diagnostics.Debug.WriteLine("磁贴更新成功！");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("磁贴更新失败: " + ex.Message);
+            }
         }
 
         private void UpdateTileWithText(string title, string copyright)
         {
-            string tileXmlString = @"
-            <tile>
-                <visual>
-                    <binding template='TileWide'>
-                        <text hint-style='title'>" + title + @"</text>
-                        <text hint-style='captionSubtle'>" + copyright + @"</text>
-                    </binding>
-                    <binding template='TileMedium'>
-                        <text hint-style='title'>" + title + @"</text>
-                        <text hint-style='captionSubtle'>" + copyright + @"</text>
-                    </binding>
-                </visual>
-            </tile>";
+            try
+            {
+                // 转义特殊字符
+                string escapedTitle = utilities.Common.EscapeXml(title);
+                string escapedCopyright = utilities.Common.EscapeXml(copyright);
 
-            XmlDocument tileXml = new XmlDocument();
-            tileXml.LoadXml(tileXmlString);
+                // 获取磁贴模板
+                XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150Text09);
+                IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                IXmlNode textNode1 = bindingNode.ChildNodes[0];
+                IXmlNode textNode2 = bindingNode.ChildNodes[1];
+                // 设置text节点
+                textNode1.InnerText = escapedTitle;
+                textNode2.InnerText = escapedCopyright;
 
-            TileNotification tileNotification = new TileNotification(tileXml);
-            TileUpdateManager.CreateTileUpdaterForApplication().Update(tileNotification);
+                // 打印 XML
+                string tileXmlString = tileXml.GetXml();
+                System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
+
+                // 创建磁贴通知
+                TileNotification tileNotification = new TileNotification(tileXml);
+
+                // 更新磁贴
+                TileUpdateManager.CreateTileUpdaterForApplication().Update(tileNotification);
+                System.Diagnostics.Debug.WriteLine("磁贴更新成功！");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("磁贴更新失败: " + ex.Message);
+            }
         }
     }
 

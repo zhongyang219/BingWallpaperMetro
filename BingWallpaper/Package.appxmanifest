@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest" xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest">
-  <Identity Name="9c8cba47-09f3-4568-9c3a-de5cf3658e68" Publisher="CN=Yang" Version="1.0.0.2" />
+  <Identity Name="9c8cba47-09f3-4568-9c3a-de5cf3658e68" Publisher="CN=Yang" Version="1.0.0.3" />
   <Properties>
     <DisplayName>BingWallpaper</DisplayName>
     <PublisherDisplayName>zhongyang219</PublisherDisplayName>
@@ -16,7 +16,11 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="BingWallpaper.App">
       <m2:VisualElements DisplayName="BingWallpaper" Square150x150Logo="Assets\Logo.png" Square30x30Logo="Assets\SmallLogo.png" Description="BingWallpaper" ForegroundText="light" BackgroundColor="#106FC0">
-        <m2:DefaultTile Wide310x150Logo="Assets\WideLogo.png">
+        <m2:DefaultTile Wide310x150Logo="Assets\WideLogo.png" DefaultSize="wide310x150Logo">
+          <m2:ShowNameOnTiles>
+            <m2:ShowOn Tile="square150x150Logo" />
+            <m2:ShowOn Tile="wide310x150Logo" />
+          </m2:ShowNameOnTiles>
         </m2:DefaultTile>
         <m2:SplashScreen Image="Assets\SplashScreen.png" />
       </m2:VisualElements>
