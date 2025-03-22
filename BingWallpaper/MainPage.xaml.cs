@@ -111,7 +111,12 @@ namespace BingWallpaper
 
         private async Task<WallpaperInfo> GetCurrentBingWallpaper()
         {
-            WallpaperInfo wallpaperInfo = new WallpaperInfo();
+            WallpaperInfo wallpaperInfo = new WallpaperInfo
+            {
+                url = "ms-appx:///Assets/Placeholder.jpg", // 默认壁纸
+                title = "今日壁纸", // 默认标题
+                copyright = "无网络连接" // 默认版权信息
+            };
 
             try
             {
@@ -163,25 +168,42 @@ namespace BingWallpaper
             }
         }
 
+        private XmlDocument CreateTileTemplate(TileTemplateType templateType, string imageUrl = null, string title = null, string copyright = null)
+        {
+            XmlDocument tileXml = TileUpdateManager.GetTemplateContent(templateType);
+
+            switch (templateType)
+            {
+                case TileTemplateType.TileWide310x150Image:
+                    IXmlNode imageNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                    imageNode.Attributes[1].NodeValue = imageUrl;
+                    break;
+
+                case TileTemplateType.TileWide310x150Text09:
+                    IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                    IXmlNode textNode1 = bindingNode.ChildNodes[0];
+                    IXmlNode textNode2 = bindingNode.ChildNodes[1];
+                    textNode1.InnerText = title;
+                    textNode2.InnerText = copyright;
+                    break;
+
+                case TileTemplateType.TileWide310x150ImageAndText01:
+                    IXmlNode bindingNode2 = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                    IXmlNode imageNode2 = bindingNode2.ChildNodes[0];
+                    IXmlNode textNode = bindingNode2.ChildNodes[1];
+                    imageNode2.Attributes[1].NodeValue = imageUrl;
+                    textNode.InnerText = title;
+                    break;
+            }
+
+            return tileXml;
+        }
+
         private void UpdateTileWithWallpaper(string imageUrl)
         {
             try
             {
-                // 转义特殊字符
-                string escapedImageUrl = utilities.Common.EscapeXml(imageUrl);
-
-                // 获取磁贴模板
-                XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150Image);
-                IXmlNode imageNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0].ChildNodes[0];
-                // 设置图片url
-                //imageNode.Attributes[1].NodeValue = "ms-appx:///Assets/TestTile.jpg";
-                imageNode.Attributes[1].NodeValue = imageUrl;
-
-                // 打印 XML
-                string tileXmlString = tileXml.GetXml();
-                System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
-
-                // 添加 XML
+                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileWide310x150Image, imageUrl);
                 tileNotifications.Add(tileXml);
             }
             catch (Exception ex)
@@ -194,24 +216,7 @@ namespace BingWallpaper
         {
             try
             {
-                // 转义特殊字符
-                string escapedTitle = utilities.Common.EscapeXml(title);
-                string escapedCopyright = utilities.Common.EscapeXml(copyright);
-
-                // 获取磁贴模板
-                XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150Text09);
-                IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
-                IXmlNode textNode1 = bindingNode.ChildNodes[0];
-                IXmlNode textNode2 = bindingNode.ChildNodes[1];
-                // 设置text节点
-                textNode1.InnerText = escapedTitle;
-                textNode2.InnerText = escapedCopyright;
-
-                // 打印 XML
-                string tileXmlString = tileXml.GetXml();
-                System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
-
-                // 添加 XML
+                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileWide310x150Text09, null, title, copyright);
                 tileNotifications.Add(tileXml);
             }
             catch (Exception ex)
@@ -224,25 +229,7 @@ namespace BingWallpaper
         {
             try
             {
-                // 转义特殊字符
-                string escapedImageUrl = utilities.Common.EscapeXml(imageUrl);
-                string escapedTitle = utilities.Common.EscapeXml(title);
-
-                // 获取磁贴模板
-                XmlDocument tileXml = TileUpdateManager.GetTemplateContent(TileTemplateType.TileWide310x150ImageAndText01);
-                IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
-                IXmlNode imageNode = bindingNode.ChildNodes[0];
-                IXmlNode textNode = bindingNode.ChildNodes[1];
-                // 设置图片节点
-                imageNode.Attributes[1].NodeValue = escapedImageUrl;
-                // 设置文本节点
-                textNode.InnerText = escapedTitle;
-
-                // 打印 XML
-                string tileXmlString = tileXml.GetXml();
-                System.Diagnostics.Debug.WriteLine("磁贴 XML: " + tileXmlString);
-
-                // 添加 XML
+                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileWide310x150ImageAndText01, imageUrl, title);
                 tileNotifications.Add(tileXml);
             }
             catch (Exception ex)
