@@ -181,12 +181,25 @@ namespace BingWallpaper.utilities
             return input;
         }
 
+        static public async void OpenUrl(string url)
+        {
+            try
+            {
+                // 使用系统浏览器打开 URL
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(url));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("打开URL失败: " + ex.Message);
+            }
+        }
+
         static public async void OpenBingSearch(string keyword)
         {
             try
             {
                 // 构造必应搜索的 URL
-                string searchUrl = "https://www.bing.com/search?q=" + Uri.EscapeDataString(keyword);
+                string searchUrl = "https://www.bing.com/search?q=" + Uri.EscapeDataString(keyword) + "&form=hpcapt&mkt=zh-cn";
 
                 // 使用系统浏览器打开 URL
                 await Windows.System.Launcher.LaunchUriAsync(new Uri(searchUrl));

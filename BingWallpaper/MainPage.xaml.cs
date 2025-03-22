@@ -35,6 +35,7 @@ namespace BingWallpaper
         List<XmlDocument> tileNotifications = new List<XmlDocument>();
         private SettingsData settingsData;
         const string KEY_SHOW_SEARCH_BOX = "showSearchBox";
+        WallpaperInfo wallpaperInfo;
 
         public MainPage()
         {
@@ -61,7 +62,7 @@ namespace BingWallpaper
             tileNotifications.Clear();
 
             // 获取壁纸信息
-            WallpaperInfo wallpaperInfo = await GetCurrentBingWallpaper();
+            wallpaperInfo = await GetCurrentBingWallpaper();
 
             // 获取磁贴更新器
             TileUpdater tileUpdater = TileUpdateManager.CreateTileUpdaterForApplication();
@@ -153,6 +154,7 @@ namespace BingWallpaper
                     }
                     wallpaperInfo.title = imageInfo["title"].ToString();
                     wallpaperInfo.copyright = imageInfo["copyright"].ToString();
+                    wallpaperInfo.copyrightLink = imageInfo["copyrightlink"].ToString();
                 }
             }
             catch (Exception ex)
@@ -356,6 +358,12 @@ namespace BingWallpaper
             // 显示 Popup
             popup.IsOpen = true;
         }
+
+        private void OnCopyrightTapped(object sender, TappedRoutedEventArgs e)
+        {
+            if (wallpaperInfo.copyrightLink != null && wallpaperInfo.copyrightLink.Length > 0)
+                utilities.Common.OpenUrl(wallpaperInfo.copyrightLink);
+        }
     }
 
     public struct WallpaperInfo
@@ -363,6 +371,8 @@ namespace BingWallpaper
         public string url;
         public string title;
         public string copyright;
+        public string copyrightLink;
+        public string searchWords;
     }
 
     public struct SettingsData

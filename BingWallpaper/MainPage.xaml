@@ -26,7 +26,9 @@
                FontSize="20"
                Foreground="White"
                TextWrapping="Wrap"
-               Visibility="Visible" FontFamily="Microsoft YaHei"/>
+               Visibility="Visible"
+               FontFamily="Microsoft YaHei"
+               Tapped="OnCopyrightTapped"/>
             <!-- 版权信息 -->
             <TextBlock x:Name="copyrightTextBlock"
                HorizontalAlignment="Right"
@@ -35,7 +37,9 @@
                FontSize="16"
                Foreground="White"
                TextWrapping="Wrap"
-               Visibility="Visible"/>
+               Visibility="Visible"
+               FontFamily="Microsoft YaHei"
+               Tapped="OnCopyrightTapped"/>
         </StackPanel>
     </Grid>
     <Page.BottomAppBar>
