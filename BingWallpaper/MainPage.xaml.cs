@@ -34,9 +34,12 @@ namespace BingWallpaper
     {
         List<XmlDocument> tileNotifications = new List<XmlDocument>();
         private SettingsData settingsData;
-        const string KEY_SHOW_SEARCH_BOX = "showSearchBox";
-        const string KEY_SHOW_WALLPAPER_SIZE = "wallpaperSize";
+        private const string KEY_SHOW_SEARCH_BOX = "showSearchBox";
+        private const string KEY_SHOW_WALLPAPER_SIZE = "wallpaperSize";
+        private const string KEY_LAST_UPDATE_DATE = "LastUpdateDate";
         WallpaperInfo wallpaperInfo;
+        DateTime lastUpdateDate = new DateTime();
+        private DispatcherTimer timer = new DispatcherTimer();
 
         public MainPage()
         {
@@ -50,6 +53,13 @@ namespace BingWallpaper
             {
                 args.Request.ApplicationCommands.Add(settingsCommand);
             };
+
+            // 创建定时器
+            timer.Interval = TimeSpan.FromMinutes(1); // 每 1 分钟触发一次
+            timer.Tick += TimerTick; // 绑定事件处理程序
+
+            // 启动定时器
+            timer.Start();
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -92,6 +102,7 @@ namespace BingWallpaper
                 {
                     string localImageUrl = "ms-appdata:///local/" + resizedFileSquare.Name;
                     UpdateSquareTileWithWallpaper(localImageUrl);
+                    UpdateSquareTileWallpaperAndText(localImageUrl, wallpaperInfo.title, wallpaperInfo.copyright);
                 }
             }
 
@@ -99,7 +110,7 @@ namespace BingWallpaper
             {
                 // 异步加载壁纸
                 BitmapImage bitmapImage = new BitmapImage();
-                bitmapImage.UriSource = new Uri(wallpaperInfo.GetUrl(settingsData.wallpaperSize));
+                bitmapImage.UriSource = new Uri("ms-appdata:///local/" + utilities.Common.DOWNLOAD_FILE_NAME);
                 curWallpaper.Source = bitmapImage;
             }
             catch (Exception ex)
@@ -130,6 +141,10 @@ namespace BingWallpaper
             {
                 System.Diagnostics.Debug.WriteLine("队列通知失败: " + ex.Message);
             }
+
+            //记录更新时间
+            lastUpdateDate = DateTime.Now.Date;
+            SaveSettings();
         }
 
         private async Task<WallpaperInfo> GetCurrentBingWallpaper()
@@ -194,6 +209,8 @@ namespace BingWallpaper
             settingsData.showSearchBox = (bool)utilities.Common.GetConfigValue(rootContainer.Values, KEY_SHOW_SEARCH_BOX, false);
             settingsData.wallpaperSize = (SettingsData.WallpaperSize)utilities.Common.GetConfigValue(rootContainer.Values, KEY_SHOW_WALLPAPER_SIZE, SettingsData.WallpaperSize.SIZE_1200);
             ApplySettings(settingsData);
+            string dateString = utilities.Common.GetConfigValue(rootContainer.Values, KEY_LAST_UPDATE_DATE, "").ToString();
+            DateTime.TryParse(dateString, out lastUpdateDate);
         }
 
         public void SaveSettings()
@@ -201,6 +218,18 @@ namespace BingWallpaper
             ApplicationDataContainer rootContainer = ApplicationData.Current.LocalSettings;
             rootContainer.Values[KEY_SHOW_SEARCH_BOX] = settingsData.showSearchBox;
             rootContainer.Values[KEY_SHOW_WALLPAPER_SIZE] = (int)settingsData.wallpaperSize;
+            rootContainer.Values[KEY_LAST_UPDATE_DATE] = lastUpdateDate.ToString();
+        }
+
+        private void CheckAndUpdateTile()
+        {
+            DateTime currentDate = DateTime.Now.Date;
+
+            // 如果上次更新日期为空或与当前日期不同，则更新磁贴
+            if (lastUpdateDate != currentDate)
+            {
+                SetBingWallpaper();
+            }
         }
 
         public void ApplySettings(SettingsData _settingsData)
@@ -228,28 +257,50 @@ namespace BingWallpaper
                 case TileTemplateType.TileWide310x150Image:
                 // 方磁贴仅图片
                 case TileTemplateType.TileSquare150x150Image:
+                // 大型方磁贴仅图片
+                case TileTemplateType.TileSquare310x310Image:
+                {
                     IXmlNode imageNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0].ChildNodes[0];
                     imageNode.Attributes[1].NodeValue = imageUrl;
+                }
                     break;
 
                 // 宽磁贴仅文本
                 case TileTemplateType.TileWide310x150Text09:
                 // 方磁贴仅文本
                 case TileTemplateType.TileSquare150x150Text02:
+                {
                     IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
                     IXmlNode textNode1 = bindingNode.ChildNodes[0];
                     IXmlNode textNode2 = bindingNode.ChildNodes[1];
                     textNode1.InnerText = title;
                     textNode2.InnerText = copyright;
+                }
                     break;
 
                 // 宽磁贴图片加文本
                 case TileTemplateType.TileWide310x150ImageAndText01:
+                {
                     IXmlNode bindingNode2 = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
                     IXmlNode imageNode2 = bindingNode2.ChildNodes[0];
                     IXmlNode textNode = bindingNode2.ChildNodes[1];
                     imageNode2.Attributes[1].NodeValue = imageUrl;
                     textNode.InnerText = title;
+                }
+                    break;
+
+                //大型宽磁贴图片加文本
+                case TileTemplateType.TileSquare310x310ImageAndText02:
+                case TileTemplateType.TileSquare310x310ImageAndTextOverlay02:
+                {
+                    IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
+                    IXmlNode imageNode = bindingNode.ChildNodes[0];
+                    IXmlNode textNode1 = bindingNode.ChildNodes[1];
+                    IXmlNode textNode2 = bindingNode.ChildNodes[2];
+                    imageNode.Attributes[1].NodeValue = imageUrl;
+                    textNode1.InnerText = title;
+                    textNode2.InnerText = copyright;
+                }
                     break;
 
             }
@@ -274,8 +325,8 @@ namespace BingWallpaper
         {
             try
             {
-                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileSquare150x150Image, imageUrl);
-                tileNotifications.Add(tileXml);
+                tileNotifications.Add(CreateTileTemplate(TileTemplateType.TileSquare150x150Image, imageUrl));
+                tileNotifications.Add(CreateTileTemplate(TileTemplateType.TileSquare310x310Image, imageUrl));
             }
             catch (Exception ex)
             {
@@ -309,6 +360,20 @@ namespace BingWallpaper
             {
                 System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
             }
+        }
+
+        private void UpdateSquareTileWallpaperAndText(string imageUrl, string title, string copyright)
+        {
+            try
+            {
+                tileNotifications.Add(CreateTileTemplate(TileTemplateType.TileSquare310x310ImageAndText02, imageUrl, title, copyright));
+                tileNotifications.Add(CreateTileTemplate(TileTemplateType.TileSquare310x310ImageAndTextOverlay02, imageUrl, title, copyright));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
+            }
+
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -402,6 +467,12 @@ namespace BingWallpaper
         {
             if (wallpaperInfo.copyrightLink != null && wallpaperInfo.copyrightLink.Length > 0)
                 utilities.Common.OpenUrl(wallpaperInfo.copyrightLink);
+        }
+
+        private void TimerTick(object sender, object e)
+        {
+            // 定时器触发时检查并更新磁贴
+            CheckAndUpdateTile();
         }
     }
 

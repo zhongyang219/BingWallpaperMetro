@@ -13,8 +13,11 @@ using Windows.Web.Http;
 
 namespace BingWallpaper.utilities
 {
+
     class Common
     {
+        public const string DOWNLOAD_FILE_NAME = "DownloadedImage.jpg";
+
         static public string EscapeXml(string input)
         {
             if (string.IsNullOrEmpty(input))
@@ -42,7 +45,7 @@ namespace BingWallpaper.utilities
                     IBuffer buffer = await response.Content.ReadAsBufferAsync();
 
                     // 保存图片到本地存储
-                    StorageFile file = await ApplicationData.Current.LocalFolder.CreateFileAsync("DownloadedImage.jpg", CreationCollisionOption.ReplaceExisting);
+                    StorageFile file = await ApplicationData.Current.LocalFolder.CreateFileAsync(DOWNLOAD_FILE_NAME, CreationCollisionOption.ReplaceExisting);
                     await FileIO.WriteBufferAsync(file, buffer);
 
                     return file;
