@@ -14,6 +14,12 @@
             <TextBlock Text="设置" FontSize="24" Margin="0,10,0,20" FontFamily="Microsoft YaHei"/>
 
             <ToggleSwitch x:Name="showSechbox" Header="显示必应搜索框" FontFamily="Microsoft YaHei" Toggled="OnShowSearchBoxToggled"/>
+            <TextBlock Text="壁纸尺寸" Margin="5" FontFamily="Microsoft YaHei" FontSize="14.667"/>
+            <ComboBox x:Name="wallpaperSizeCombo" Margin="5">
+                <x:String>1920x1080</x:String>
+                <x:String>1920x1200</x:String>
+            </ComboBox>
+
         </StackPanel>
     </Grid>
 </Page>

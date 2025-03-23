@@ -18,12 +18,14 @@ namespace BingWallpaper
         private void SettingsToUI(SettingsData settingsData)
         {
             showSechbox.IsOn = settingsData.showSearchBox;
+            wallpaperSizeCombo.SelectedIndex = (int)settingsData.wallpaperSize;
         }
 
         private SettingsData SettingsFromUI()
         {
             SettingsData settingsData;
             settingsData.showSearchBox = showSechbox.IsOn;
+            settingsData.wallpaperSize = (SettingsData.WallpaperSize)wallpaperSizeCombo.SelectedIndex;
             return settingsData;
         }
 
@@ -53,6 +55,7 @@ namespace BingWallpaper
         // Popup 关闭时保存设置
         private void OnPopupClosed(object sender, object e)
         {
+            mainPage.ApplySettings(SettingsFromUI());
             mainPage.SaveSettings();
         }
 

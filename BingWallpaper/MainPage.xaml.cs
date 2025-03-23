@@ -35,6 +35,7 @@ namespace BingWallpaper
         List<XmlDocument> tileNotifications = new List<XmlDocument>();
         private SettingsData settingsData;
         const string KEY_SHOW_SEARCH_BOX = "showSearchBox";
+        const string KEY_SHOW_WALLPAPER_SIZE = "wallpaperSize";
         WallpaperInfo wallpaperInfo;
 
         public MainPage()
@@ -72,7 +73,7 @@ namespace BingWallpaper
             tileUpdater.Clear();
 
             // 下载图片
-            StorageFile downloadedFile = await utilities.Common.DownloadImageAsync(wallpaperInfo.url);
+            StorageFile downloadedFile = await utilities.Common.DownloadImageAsync(wallpaperInfo.GetUrl(settingsData.wallpaperSize));
             if (downloadedFile != null)
             {
                 // 调整图片尺寸
@@ -91,7 +92,7 @@ namespace BingWallpaper
             {
                 // 异步加载壁纸
                 BitmapImage bitmapImage = new BitmapImage();
-                bitmapImage.UriSource = new Uri(wallpaperInfo.url);
+                bitmapImage.UriSource = new Uri(wallpaperInfo.GetUrl(settingsData.wallpaperSize));
                 curWallpaper.Source = bitmapImage;
             }
             catch (Exception ex)
@@ -152,6 +153,12 @@ namespace BingWallpaper
                     {
                         wallpaperInfo.url = wallpaperInfo.url.Substring(0, jpgIndex + 4);
                     }
+                    wallpaperInfo.urlWithWaterMark = wallpaperInfo.url;
+                    //获取1920x1200链接
+                    if (wallpaperInfo.urlWithWaterMark.EndsWith("_1920x1080.jpg"))
+                    {
+                        wallpaperInfo.urlWithWaterMark = wallpaperInfo.urlWithWaterMark.Replace("1920x1080", "1920x1200");
+                    }
                     wallpaperInfo.title = imageInfo["title"].ToString();
                     wallpaperInfo.copyright = imageInfo["copyright"].ToString();
                     wallpaperInfo.copyrightLink = imageInfo["copyrightlink"].ToString();
@@ -178,6 +185,7 @@ namespace BingWallpaper
         {
             ApplicationDataContainer rootContainer = ApplicationData.Current.LocalSettings;
             settingsData.showSearchBox = (bool)utilities.Common.GetConfigValue(rootContainer.Values, KEY_SHOW_SEARCH_BOX, false);
+            settingsData.wallpaperSize = (SettingsData.WallpaperSize)utilities.Common.GetConfigValue(rootContainer.Values, KEY_SHOW_WALLPAPER_SIZE, SettingsData.WallpaperSize.SIZE_1200);
             ApplySettings(settingsData);
         }
 
@@ -185,6 +193,7 @@ namespace BingWallpaper
         {
             ApplicationDataContainer rootContainer = ApplicationData.Current.LocalSettings;
             rootContainer.Values[KEY_SHOW_SEARCH_BOX] = settingsData.showSearchBox;
+            rootContainer.Values[KEY_SHOW_WALLPAPER_SIZE] = (int)settingsData.wallpaperSize;
         }
 
         public void ApplySettings(SettingsData _settingsData)
@@ -208,12 +217,18 @@ namespace BingWallpaper
 
             switch (templateType)
             {
+                // 宽磁贴仅图片
                 case TileTemplateType.TileWide310x150Image:
+                // 方磁贴仅图片
+                case TileTemplateType.TileSquare150x150Image:
                     IXmlNode imageNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0].ChildNodes[0];
                     imageNode.Attributes[1].NodeValue = imageUrl;
                     break;
 
+                // 宽磁贴仅文本
                 case TileTemplateType.TileWide310x150Text09:
+                // 方磁贴仅文本
+                case TileTemplateType.TileSquare150x150Text02:
                     IXmlNode bindingNode = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
                     IXmlNode textNode1 = bindingNode.ChildNodes[0];
                     IXmlNode textNode2 = bindingNode.ChildNodes[1];
@@ -221,6 +236,7 @@ namespace BingWallpaper
                     textNode2.InnerText = copyright;
                     break;
 
+                // 宽磁贴图片加文本
                 case TileTemplateType.TileWide310x150ImageAndText01:
                     IXmlNode bindingNode2 = tileXml.ChildNodes[0].ChildNodes[0].ChildNodes[0];
                     IXmlNode imageNode2 = bindingNode2.ChildNodes[0];
@@ -228,6 +244,7 @@ namespace BingWallpaper
                     imageNode2.Attributes[1].NodeValue = imageUrl;
                     textNode.InnerText = title;
                     break;
+
             }
 
             return tileXml;
@@ -237,8 +254,10 @@ namespace BingWallpaper
         {
             try
             {
-                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileWide310x150Image, imageUrl);
-                tileNotifications.Add(tileXml);
+                XmlDocument tileWideXml = CreateTileTemplate(TileTemplateType.TileWide310x150Image, imageUrl);
+                tileNotifications.Add(tileWideXml);
+                //XmlDocument tileSquareXml = CreateTileTemplate(TileTemplateType.TileSquare150x150Image, imageUrl);
+                //tileNotifications.Add(tileSquareXml);
             }
             catch (Exception ex)
             {
@@ -250,8 +269,10 @@ namespace BingWallpaper
         {
             try
             {
-                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileWide310x150Text09, null, title, copyright);
-                tileNotifications.Add(tileXml);
+                XmlDocument tileWideXml = CreateTileTemplate(TileTemplateType.TileWide310x150Text09, null, title, copyright);
+                tileNotifications.Add(tileWideXml);
+                XmlDocument tileSquareXml = CreateTileTemplate(TileTemplateType.TileSquare150x150Text02, null, title, copyright);
+                tileNotifications.Add(tileSquareXml);
             }
             catch (Exception ex)
             {
@@ -315,7 +336,7 @@ namespace BingWallpaper
             }
         }
 
-        private void SearchTextBox_KeyDown(object sender, KeyRoutedEventArgs e)
+        private void searchTextBox_KeyUp(object sender, KeyRoutedEventArgs e)
         {
             // 检查是否按下回车键
             if (e.Key == Windows.System.VirtualKey.Enter)
@@ -368,15 +389,29 @@ namespace BingWallpaper
 
     public struct WallpaperInfo
     {
-        public string url;
-        public string title;
-        public string copyright;
-        public string copyrightLink;
-        public string searchWords;
+        public string url;              //壁纸的路径（1920x1080）
+        public string urlWithWaterMark; //壁纸的路径（1920x1200，有必应水印）
+        public string title;            //壁纸的标题
+        public string copyright;        //版权
+        public string copyrightLink;    //必应搜索链接
+        public string searchWords;      //从copyrightLink提取的搜索关键字
+        public string GetUrl(SettingsData.WallpaperSize wallpaperSize)
+        {
+            if (wallpaperSize == SettingsData.WallpaperSize.SIZE_1080)
+                return url;
+            else
+                return urlWithWaterMark;
+        }
     }
 
     public struct SettingsData
     {
         public bool showSearchBox;
+        public enum WallpaperSize
+        {
+            SIZE_1080,
+            SIZE_1200
+        }
+        public WallpaperSize wallpaperSize;
     }
 }
