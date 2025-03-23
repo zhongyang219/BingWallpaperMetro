@@ -76,15 +76,22 @@ namespace BingWallpaper
             StorageFile downloadedFile = await utilities.Common.DownloadImageAsync(wallpaperInfo.GetUrl(settingsData.wallpaperSize));
             if (downloadedFile != null)
             {
-                // 调整图片尺寸
-                StorageFile resizedFile = await utilities.Common.ResizeImageAsync(downloadedFile, 558, 270);
-
-                if (resizedFile != null)
+                // 调整图片尺寸为宽磁贴大小
+                StorageFile resizedFileWide = await utilities.Common.ResizeImageAsync(downloadedFile, 558, 270);
+                if (resizedFileWide != null)
                 {
                     // 使用调整后的图片更新磁贴
-                    string localImageUrl = "ms-appdata:///local/" + resizedFile.Name;
-                    UpdateTileWithWallpaper(localImageUrl);
+                    string localImageUrl = "ms-appdata:///local/" + resizedFileWide.Name;
+                    UpdateWideTileWithWallpaper(localImageUrl);
                     UpdateTileWallpaperAndTitle(localImageUrl, wallpaperInfo.title);
+                }
+
+                // 调整图片大小为方形磁贴大小
+                StorageFile resizedFileSquare = await utilities.Common.ResizeImageAsync(downloadedFile, 558, 558);
+                if (resizedFileSquare != null)
+                {
+                    string localImageUrl = "ms-appdata:///local/" + resizedFileSquare.Name;
+                    UpdateSquareTileWithWallpaper(localImageUrl);
                 }
             }
 
@@ -250,14 +257,25 @@ namespace BingWallpaper
             return tileXml;
         }
 
-        private void UpdateTileWithWallpaper(string imageUrl)
+        private void UpdateWideTileWithWallpaper(string imageUrl)
         {
             try
             {
-                XmlDocument tileWideXml = CreateTileTemplate(TileTemplateType.TileWide310x150Image, imageUrl);
-                tileNotifications.Add(tileWideXml);
-                //XmlDocument tileSquareXml = CreateTileTemplate(TileTemplateType.TileSquare150x150Image, imageUrl);
-                //tileNotifications.Add(tileSquareXml);
+                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileWide310x150Image, imageUrl);
+                tileNotifications.Add(tileXml);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("磁贴 XML 添加失败: " + ex.Message);
+            }
+        }
+
+        private void UpdateSquareTileWithWallpaper(string imageUrl)
+        {
+            try
+            {
+                XmlDocument tileXml = CreateTileTemplate(TileTemplateType.TileSquare150x150Image, imageUrl);
+                tileNotifications.Add(tileXml);
             }
             catch (Exception ex)
             {

@@ -140,7 +140,8 @@ namespace BingWallpaper.utilities
                     await croppedEncoder.FlushAsync();
 
                     // 保存裁切后的图片
-                    StorageFile resizedFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("ResizedImage.jpg", CreationCollisionOption.ReplaceExisting);
+                    string resizedFileName = string.Format("ResizedImage{0}x{1}.jpg", targetWidth, targetHeight);
+                    StorageFile resizedFile = await ApplicationData.Current.LocalFolder.CreateFileAsync(resizedFileName, CreationCollisionOption.ReplaceExisting);
                     using (IRandomAccessStream resizedFileStream = await resizedFile.OpenAsync(FileAccessMode.ReadWrite))
                     {
                         await RandomAccessStream.CopyAsync(croppedStream, resizedFileStream);
